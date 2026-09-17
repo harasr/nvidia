@@ -362,32 +362,30 @@ export class AudioEngine {
     const beatInBar = step % 16;
     const bar = Math.floor(step / 16) % 4;
 
-    // 1. Heavy Kick Drum (4-on-the-floor + extra syncopated hit at the end of phrase)
-    if (beatInBar === 0 || beatInBar === 8 || (bar === 3 && beatInBar === 14)) {
+    // 1. Pop Kick Drum (Four-on-the-floor + occasional syncopation)
+    if (beatInBar === 0 || beatInBar === 8 || (bar % 2 === 1 && beatInBar === 14)) {
       this.triggerKick(time);
     }
 
-    // 2. Punchy Snare (Standard backbeat + ghost notes)
+    // 2. Pop Clap/Snare (Beats 2 and 4)
     if (beatInBar === 4 || beatInBar === 12) {
       this.triggerSnare(time, false);
-    } else if (bar === 1 && beatInBar === 15) {
-      this.triggerSnare(time, true); // Ghost note snare
     }
 
-    // 3. Hi-Hats (Trap/EDM style with varying velocities and occasional rolls)
-    if (beatInBar % 2 === 1 || (bar === 2 && (beatInBar === 12 || beatInBar === 13 || beatInBar === 14))) {
-      const isOpen = beatInBar === 6 || beatInBar === 14;
+    // 3. Shaker / Soft Hi-Hat (Constant 16ths)
+    if (beatInBar % 2 === 0 || beatInBar % 2 === 1) {
+      const isOpen = beatInBar % 4 === 2;
       this.triggerHiHat(time, isOpen);
     }
 
-    // 4. Cyberpunk / Acid Bassline
-    // Syncopated rhythm pattern
-    if ([0, 3, 6, 8, 11, 14].includes(beatInBar)) {
-      this.triggerBass(step, time, beatInBar === 14); // Sustain the last note longer
+    // 4. Pop Bassline (F - G - Em - Am progression)
+    if (beatInBar === 0 || beatInBar === 3 || beatInBar === 8 || beatInBar === 11) {
+      this.triggerBass(step, time, beatInBar === 8 || beatInBar === 11);
     }
 
-    // 5. Super-Saw Lead Melody (Fast, syncopated 16th/8th notes)
-    if (step % 2 === 0 || (bar === 3 && step % 2 === 1)) {
+    // 5. Sweet Pop Melody (F Major / C Major pentatonic)
+    // Plays bright lead notes
+    if (step % 2 === 0 || (bar % 2 === 1 && step % 2 === 1 && beatInBar > 8)) {
       this.triggerLead(step, time);
     }
   }
@@ -395,41 +393,27 @@ export class AudioEngine {
   private triggerKick(time: number): void {
     if (!this.ctx || !this.musicGain) return;
     
-    // Layer 1: Sub Bass Thump
-    const subOsc = this.ctx.createOscillator();
-    const subGain = this.ctx.createGain();
-    subOsc.frequency.setValueAtTime(150, time);
-    subOsc.frequency.exponentialRampToValueAtTime(40, time + 0.1); // Fast drop
-    subOsc.frequency.exponentialRampToValueAtTime(1, time + 0.3); // Tail
-    subGain.gain.setValueAtTime(0.9, time);
-    subGain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
-    subOsc.connect(subGain);
-    subGain.connect(this.musicGain);
+    // Soft acoustic-like pop kick
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.frequency.setValueAtTime(120, time);
+    osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+    gain.gain.setValueAtTime(0.7, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    osc.connect(gain);
+    gain.connect(this.musicGain);
     
-    // Layer 2: Click/Punch
-    const clickOsc = this.ctx.createOscillator();
-    const clickGain = this.ctx.createGain();
-    clickOsc.type = 'square';
-    clickOsc.frequency.setValueAtTime(800, time);
-    clickOsc.frequency.exponentialRampToValueAtTime(100, time + 0.05);
-    clickGain.gain.setValueAtTime(0.3, time);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-    clickOsc.connect(clickGain);
-    clickGain.connect(this.musicGain);
-
-    subOsc.start(time);
-    clickOsc.start(time);
-    subOsc.stop(time + 0.3);
-    clickOsc.stop(time + 0.05);
+    osc.start(time);
+    osc.stop(time + 0.2);
   }
 
   private triggerSnare(time: number, isGhost: boolean): void {
     if (!this.ctx || !this.musicGain) return;
     
-    const duration = isGhost ? 0.08 : 0.18;
-    const volume = isGhost ? 0.15 : 0.45;
+    const duration = 0.15;
+    const volume = 0.35;
 
-    // Noise layer
+    // Soft clap/snare sound
     const bufferSize = this.ctx.sampleRate * duration;
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = noiseBuffer.getChannelData(0);
@@ -439,8 +423,9 @@ export class AudioEngine {
     const noise = this.ctx.createBufferSource();
     noise.buffer = noiseBuffer;
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.setValueAtTime(isGhost ? 2000 : 1000, time);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1200, time);
+    filter.Q.value = 0.8;
     
     const noiseGain = this.ctx.createGain();
     noiseGain.gain.setValueAtTime(volume, time);
@@ -449,30 +434,15 @@ export class AudioEngine {
     filter.connect(noiseGain);
     noiseGain.connect(this.musicGain);
 
-    // Body/Tonal layer
-    if (!isGhost) {
-      const tone = this.ctx.createOscillator();
-      const toneGain = this.ctx.createGain();
-      tone.type = 'triangle';
-      tone.frequency.setValueAtTime(300, time);
-      tone.frequency.exponentialRampToValueAtTime(180, time + 0.1);
-      toneGain.gain.setValueAtTime(0.3, time);
-      toneGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
-      tone.connect(toneGain);
-      toneGain.connect(this.musicGain);
-      tone.start(time);
-      tone.stop(time + 0.15);
-    }
-
     noise.start(time);
     noise.stop(time + duration);
   }
 
   private triggerHiHat(time: number, isOpen: boolean): void {
     if (!this.ctx || !this.musicGain) return;
-    const duration = isOpen ? 0.15 : 0.04;
+    const duration = isOpen ? 0.08 : 0.03;
     
-    // Create tight synthetic hi-hat using bandpass noise
+    // Soft shaker/hihat
     const bufferSize = Math.floor(this.ctx.sampleRate * duration);
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = noiseBuffer.getChannelData(0);
@@ -483,12 +453,11 @@ export class AudioEngine {
     noise.buffer = noiseBuffer;
     
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(8000, time);
-    filter.Q.value = 1.5;
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(6000, time);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(isOpen ? 0.35 : 0.25, time);
+    gain.gain.setValueAtTime(isOpen ? 0.15 : 0.08, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
     
     noise.connect(filter);
@@ -502,85 +471,61 @@ export class AudioEngine {
   private triggerBass(step: number, time: number, isLong: boolean): void {
     if (!this.ctx || !this.musicGain) return;
     
-    // Hard/Dark Phrygian Bass scale
-    const baseFreqs = [32.7, 34.65, 38.89, 43.65, 49.0]; // C1, Db1, Eb1, F1, G1
-    const pattern = [0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 4, 2, 0, 1, 0];
-    const freq = baseFreqs[pattern[step % 16]] * 2; // Up one octave for audibility
+    // Pop chord progression roots: F, G, E, A
+    const baseFreqs = [43.65, 49.00, 41.20, 55.00]; 
+    const bar = Math.floor(step / 16) % 4;
+    const freq = baseFreqs[bar] * 1.5; // Slightly higher for audibility
     
-    const duration = isLong ? 0.3 : 0.12;
+    const duration = isLong ? 0.4 : 0.2;
 
-    // Dual Detuned Saws for a thick Reese-like bass
-    const osc1 = this.ctx.createOscillator();
-    const osc2 = this.ctx.createOscillator();
-    osc1.type = 'sawtooth';
-    osc2.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(freq, time);
-    osc2.frequency.setValueAtTime(freq * 1.01, time); // Detuned
+    const osc = this.ctx.createOscillator();
+    osc.type = 'triangle'; // Smooth, warm bass
+    osc.frequency.setValueAtTime(freq, time);
 
-    const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
-
-    // Plucky Acid Filter envelope
-    filter.type = 'lowpass';
-    filter.Q.value = 8; // High resonance for acid squelch
-    filter.frequency.setValueAtTime(freq * 12, time); // Start bright
-    filter.frequency.exponentialRampToValueAtTime(freq * 1.5, time + duration * 0.8); // Drop down
-
-    gain.gain.setValueAtTime(0.4, time);
+    gain.gain.setValueAtTime(0.5, time);
     gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
 
-    osc1.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
+    osc.connect(gain);
     gain.connect(this.musicGain);
 
-    osc1.start(time);
-    osc2.start(time);
-    osc1.stop(time + duration);
-    osc2.stop(time + duration);
+    osc.start(time);
+    osc.stop(time + duration);
   }
 
   private triggerLead(step: number, time: number): void {
     if (!this.ctx || !this.musicGain) return;
     
-    // High-energy EDM melody (C Minor Pentatonic jumping octaves)
-    const melodyScale = [261.63, 311.13, 349.23, 392.0, 466.16, 523.25, 622.25, 698.46, 783.99, 932.33]; 
-    const leadPattern = [5, 5, 8, 5, 7, 5, 4, 2, 5, 5, 9, 8, 7, 5, 4, 2];
-    const bar = Math.floor(step / 16) % 4;
-    let noteIdx = leadPattern[(Math.floor(step / 2)) % leadPattern.length];
-    
-    // Variation at the end of the 4-bar phrase
-    if (bar === 3 && step % 16 > 10) {
-        noteIdx = (noteIdx + 2) % melodyScale.length;
-    }
+    // Nơi Này Có Anh vibe (Sweet F major / C major pentatonic melody)
+    // Notes: C, D, E, F, G, A, C
+    const melodyScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 523.25, 587.33, 659.25]; 
+    // Cute bouncy melody pattern
+    const leadPattern = [4, 5, 4, 2, 4, 2, 0, 2, 6, 5, 4, 2, 4, 6, 4, 2];
+    const noteIdx = leadPattern[(Math.floor(step / 2)) % leadPattern.length];
     
     const freq = melodyScale[noteIdx];
-    const duration = 0.15;
+    const duration = 0.2;
 
-    // Super-Saw Pluck
-    const numOscs = 3;
+    // Plucky synth sound (Sine + Triangle for sweetness)
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq, time);
+    osc2.frequency.setValueAtTime(freq, time);
+
     const masterGain = this.ctx.createGain();
-    masterGain.gain.setValueAtTime(0.12, time);
+    masterGain.gain.setValueAtTime(0.0, time);
+    masterGain.gain.linearRampToValueAtTime(0.2, time + 0.02); // soft attack
     masterGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
-    for (let i = 0; i < numOscs; i++) {
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sawtooth';
-        // Detune: -15, 0, +15 cents
-        const detune = (i - 1) * 15;
-        osc.frequency.setValueAtTime(freq, time);
-        osc.detune.setValueAtTime(detune, time);
-        osc.connect(masterGain);
-        osc.start(time);
-        osc.stop(time + duration);
-    }
-    
-    // Slight lowpass to remove harsh highs
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 6000;
-    
-    masterGain.connect(filter);
-    filter.connect(this.musicGain);
+    osc1.connect(masterGain);
+    osc2.connect(masterGain);
+    masterGain.connect(this.musicGain);
+
+    osc1.start(time);
+    osc2.start(time);
+    osc1.stop(time + duration);
+    osc2.stop(time + duration);
   }
 }
