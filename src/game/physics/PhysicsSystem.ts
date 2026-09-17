@@ -153,7 +153,7 @@ export class PhysicsSystem {
     },
     isInputHeld: boolean
   ): void {
-    const hSpeed = BASE_SPEEDS[player.speed];
+    const hSpeed = PhysicsSystem.getHorizontalSpeed(player.speed);
     const verticalMultiplier = player.isMini ? 1.35 : 1.0;
     const waveSpeed = hSpeed * verticalMultiplier;
 

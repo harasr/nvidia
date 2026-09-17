@@ -42,6 +42,11 @@ export const GameView: React.FC<GameViewProps> = ({ level, onExit }) => {
     canvas.width = width;
     canvas.height = height;
 
+    if (!level.levelData) {
+      showNotification('Level data corrupted or outdated. Please clear cache.', 'error');
+      return;
+    }
+
     const engine = new GameEngine(canvas, {
       onStateChange: (st) => {
         setEngineState(st);

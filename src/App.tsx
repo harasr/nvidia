@@ -20,7 +20,13 @@ export default function App() {
   const { currentView, setCurrentView, openPublishModal, isGoogleAuthOpen, closeGoogleAuth } = useUIStore();
   const { currentLevel, setCurrentLevel } = useGameStore();
 
-  const [activeLevel, setActiveLevel] = useState<LevelMeta>(currentLevel || DEFAULT_LEVELS[0]);
+  const [activeLevel, setActiveLevel] = useState<LevelMeta>(() => {
+    if (currentLevel) {
+      const defaultLvl = DEFAULT_LEVELS.find(l => l.id === currentLevel.id);
+      return defaultLvl || currentLevel;
+    }
+    return DEFAULT_LEVELS[0];
+  });
 
   const handlePlayLevel = (level: LevelMeta) => {
     setActiveLevel(level);
