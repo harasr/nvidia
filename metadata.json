@@ -1,0 +1,6 @@
+{
+  "name": "Geometry Dash Web Studio",
+  "description": "A high-performance 2D rhythm-based action platformer web game and visual level editor with custom physics, particle pooling, Web Audio beat synchronization, and global leaderboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

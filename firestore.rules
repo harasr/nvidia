@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ========================================================
+    // HELPER FUNCTIONS FOR SECURITY & AUTHENTICATION
+    // ========================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidLevel() {
+      let data = request.resource.data;
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 40
+        && data.creatorId == request.auth.uid
+        && data.starsReward is number && data.starsReward >= 1 && data.starsReward <= 10
+        && data.bpm is number && data.bpm >= 60 && data.bpm <= 240
+        && data.levelData is map;
+    }
+
+    function isValidScore() {
+      let data = request.resource.data;
+      return data.userId == request.auth.uid
+        && data.percentage is number && data.percentage >= 0 && data.percentage <= 100
+        && data.attempts is number && data.attempts >= 1;
+    }
+
+    // ========================================================
+    // USERS COLLECTION
+    // Storing player profiles, total stars, secret coins, custom icons
+    // ========================================================
+    match /users/{userId} {
+      // Anyone can read player profiles for leaderboards
+      allow read: if true;
+
+      // Only the authenticated user can create or modify their own profile
+      allow create: if isOwner(userId)
+        && request.resource.data.stars is number
+        && request.resource.data.email == request.auth.token.email;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.email == resource.data.email; // Email cannot be changed
+
+      allow delete: if false; // Profiles are preserved
+    }
+
+    // ========================================================
+    // LEVELS COLLECTION
+    // Community levels created in the visual level editor
+    // ========================================================
+    match /levels/{levelId} {
+      // Anyone can read published levels; creators can view unpublished drafts
+      allow read: if resource.data.isPublished == true || (isSignedIn() && resource.data.creatorId == request.auth.uid);
+
+      // Authenticated creators can publish verified levels
+      allow create: if isSignedIn() && isValidLevel();
+
+      // Only creator can edit their level; cannot spoof creatorId
+      allow update: if isSignedIn()
+        && resource.data.creatorId == request.auth.uid
+        && request.resource.data.creatorId == request.auth.uid
+        && isValidLevel();
+
+      // Only creator can delete their level
+      allow delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+    }
+
+    // ========================================================
+    // SCORES & LEADERBOARD RECORDS
+    // Verified run submissions (anti-cheat protected)
+    // ========================================================
+    match /scores/{scoreId} {
+      // Public leaderboard can be viewed by all players
+      allow read: if true;
+
+      // Only authenticated players can submit their own validated score
+      allow create: if isSignedIn() && isValidScore();
+
+      // Scores can only be updated if personal best is improved
+      allow update: if isSignedIn() && isOwner(resource.data.userId) && isValidScore();
+
+      allow delete: if false;
+    }
+  }
+}

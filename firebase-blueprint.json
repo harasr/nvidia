@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Registered player with stats and earned stars",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "format": "email" },
+        "image": { "type": "string" },
+        "stars": { "type": "number" },
+        "secretCoins": { "type": "number" },
+        "completedLevelsCount": { "type": "number" },
+        "createdLevelsCount": { "type": "number" }
+      },
+      "required": ["id", "name", "email", "stars", "secretCoins"]
+    },
+    "Level": {
+      "title": "Level Definition",
+      "description": "Geometry Dash community or official level data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 60 },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "starsReward": { "type": "number" },
+        "bpm": { "type": "number" },
+        "isPublished": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "creatorId", "difficulty", "starsReward", "isPublished"]
+    },
+    "Score": {
+      "title": "Player Score Record",
+      "description": "Level clear score and percentage record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "levelId": { "type": "string" },
+        "percentage": { "type": "number" },
+        "attempts": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "userName", "levelId", "percentage", "attempts", "completed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User player profiles"
+    },
+    "/levels/{levelId}": {
+      "schema": "Level",
+      "description": "Published community levels"
+    },
+    "/scores/{scoreId}": {
+      "schema": "Score",
+      "description": "Leaderboard score records"
+    }
+  }
+}

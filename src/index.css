@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #0D0E15;
+    --neon-cyan: #00F0FF;
+    --neon-purple: #9D00FF;
+    --neon-blue: #0070F3;
+    --neon-yellow: #FFE600;
+    --neon-pink: #FF007F;
+    --neon-green: #00FF66;
+  }
+
+  body {
+    background-color: #0D0E15;
+    color: #F0F4F8;
+    font-family: 'Outfit', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-heading {
+    font-family: 'Chakra Petch', sans-serif;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #121420;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A2E45;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00F0FF;
+}
+
+/* Animations & glow utility classes */
+.neon-glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+}
+.neon-glow-purple {
+  box-shadow: 0 0 15px rgba(157, 0, 255, 0.4), inset 0 0 10px rgba(157, 0, 255, 0.2);
+}
+.neon-glow-yellow {
+  box-shadow: 0 0 15px rgba(255, 230, 0, 0.4), inset 0 0 10px rgba(255, 230, 0, 0.2);
+}
+.neon-glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.4), inset 0 0 10px rgba(0, 255, 102, 0.2);
+}
+.neon-text-glow {
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.7);
+}
